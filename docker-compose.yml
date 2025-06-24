@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+
+  # MongoDB service
+  mongodb:
+    image: mongo:latest
+    container_name: lupisori_mongodb
+    restart: always
+    ports:
+      - "27018:27017"  # Using non-default port 27018 for host mapping
+    volumes:
+      - ./mongodb_data:/data/db
+    networks:
+      app-network:
+        aliases:
+          - lupisori_mongodb
+
+  # Node.js application instances
+  app1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: app1
+    restart: always
+    ports:
+      - "3001:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - MONGO_URI=mongodb://lupisori_mongodb:27017/moviedb
+    depends_on:
+      - mongodb
+    networks:
+      - app-network
+
+  app2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: app2
+    restart: always
+    ports:
+      - "3002:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - MONGO_URI=mongodb://lupisori_mongodb:27017/moviedb
+    depends_on:
+      - mongodb
+    networks:
+      - app-network
+
+  app3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: app3
+    restart: always
+    ports:
+      - "3003:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - MONGO_URI=mongodb://lupisori_mongodb:27017/moviedb
+    depends_on:
+      - mongodb
+    networks:
+      - app-network
+
+  # Nginx load balancer
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./public:/usr/share/nginx/html
+      - nginx_cache:/var/cache/nginx
+    depends_on:
+      - app1
+      - app2
+      - app3
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  nginx_cache:
+    driver: local
